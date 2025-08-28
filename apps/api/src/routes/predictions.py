@@ -13,10 +13,14 @@ async def start_train(symbol: str):
 
 @router.get("/predict/{symbol}")
 async def get_prediction(symbol: str):
-    if f'{symbol}.pkl' in os.listdir("../models"):
+    models_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "models"))
+    model_path = os.path.join(models_dir, f"{symbol}.keras")
+    if os.path.exists(model_path):
         df = get_data(symbol)
+        if df is None:
+            raise HTTPException(status_code=502, detail="Failed to fetch market data for prediction")
         X_train, X_test, y_train, y_test = preprocess(df)
-        prediction = predict(X_test, df)
+        prediction = predict(X_test, df, model_path)
     else:
         raise HTTPException(
             status_code=404, 
@@ -26,8 +30,10 @@ async def get_prediction(symbol: str):
 
 @router.get("/model/status/{symbol}")
 async def check_status(symbol: str):
-    if f'{symbol}.pkl' in os.listdir("../models"):
-        return {f"Model exists for {symbol} stock. Proceed with prediction"}
+    models_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "models"))
+    model_path = os.path.join(models_dir, f"{symbol}.keras")
+    if os.path.exists(model_path):
+        return {"status": f"Model exists for {symbol} stock. Proceed with prediction"}
        
     else:
         raise HTTPException(

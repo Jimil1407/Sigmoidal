@@ -1,24 +1,26 @@
 from sklearn.preprocessing import MinMaxScaler
-import pickle
+from tensorflow import keras
+import numpy as np
 
-def predict(X_test, df):
+def predict(X_test, df, model_path: str):
 
+    # Fit a scaler on historical Close prices to invert the target scaling
     scaler = MinMaxScaler(feature_range=(0, 1))
-    features = ['Open', 'High', 'Low', 'Close', 'Volume']
-    data = df[features].values
+    close_values = df['Close'].values[1:].reshape(-1, 1)
+    scaler.fit(close_values)
 
-    model_filename = "../models/f'{stock}.pkl'"
-    with open(model_filename, "rb") as f:
-        model = pickle.load(f)
+    try:
+        model = keras.models.load_model(model_path)
+    except Exception as exc:
+        print(f"Error loading model from {model_path}: {exc}")
+        return 500
 
     if model is not None:
         if len(X_test) > 0:
             last_sequence = X_test[-1]
             last_sequence = last_sequence.reshape(1, last_sequence.shape[0], last_sequence.shape[1])
             predicted_scaled_price = model.predict(last_sequence)
-            dummy_array = np.zeros((predicted_scaled_price.shape[0], data.shape[1]))
-            dummy_array[:, 3] = predicted_scaled_price[:, 0]
-            predicted_price = scaler.inverse_transform(dummy_array)[:, 3]
+            predicted_price = scaler.inverse_transform(predicted_scaled_price)[:, 0]
             print(f"Predicted next closing price (scaled): {predicted_scaled_price}")
             print(f"Predicted next closing price (actual): {predicted_price[0]}")
 

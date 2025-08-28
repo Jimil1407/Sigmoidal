@@ -6,7 +6,8 @@ from sklearn.model_selection import train_test_split
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout
 import os
-import pickle
+import asyncio
+from tensorflow import keras
 
 directory = "../models"
 os.makedirs(directory, exist_ok=True)
@@ -22,12 +23,13 @@ def get_data(symbol: str):
         params=params
     )
     try:
+        response.raise_for_status()
         # If API returns JSON array of records
         df = pd.DataFrame(response.json())
         print(df.head())
         print(df.info())
-    except FileNotFoundError:
-        print("Error: temo.json not found. Please make sure the file is in the correct directory.")
+    except Exception as exc:
+        print(f"Error fetching or parsing data: {exc}")
         df = None
     return df
 
@@ -84,17 +86,15 @@ def model_train(X_train, X_test, y_train, y_test, stock: str):
     model.compile(optimizer='adam', loss='mean_squared_error')
 
     history = model.fit(X_train, y_train, epochs=100, batch_size=32, validation_data=(X_test, y_test))
-    model_filename = f"{directory}/{stock}.pkl"
-    with open(model_filename, "wb") as f:
-        pickle.dump(model, f)
+    model_filename = f"{directory}/{stock}.keras"
+    model.save(model_filename, include_optimizer=False)
 
-    print(f"Model training complete. Model saved at models/{stock}.pkl")
+    print(f"Model training complete. Model saved at models/{stock}.keras")
 
 
 def evaluate(X_test, y_test, stock: str):
-    model_filename = "../models/f'{stock}.pkl'"
-    with open(model_filename, "rb") as f:
-        model = pickle.load(f)
+    model_filename = f"../models/{stock}.keras"
+    model = keras.models.load_model(model_filename)
 
     mse = model.evaluate(X_test, y_test, verbose=0)
     rmse = np.sqrt(mse)
@@ -105,6 +105,10 @@ def evaluate(X_test, y_test, stock: str):
 
 async def train(stock: str):
     df = get_data(stock)
+    if df is None:
+        print("No data returned for training. Aborting.")
+    
+        return 500
     X_train, X_test, y_train, y_test = preprocess(df)
     model_train(X_train, X_test, y_train, y_test,stock)
     evaluate(X_test, y_test, stock)
@@ -114,5 +118,5 @@ async def train(stock: str):
 
 if __name__ == "__main__":
     stock = input("Enter the stock symbol")
-    train(stock)
+    asyncio.run(train(stock))
 
