@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
-from ml.model_train import train, preprocess, get_data
-from ml.model_predict import predict
+from src.ml.model_train import train, preprocess, get_data
+from src.ml.model_predict import predict
 import os
 
 router = APIRouter(prefix="/api/v1/predictions", tags=["predictions"])

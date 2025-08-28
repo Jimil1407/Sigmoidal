@@ -117,6 +117,6 @@ async def train(stock: str):
 
 
 if __name__ == "__main__":
-    stock = input("Enter the stock symbol")
+    stock = str(input("Enter the stock symbol: "))
     asyncio.run(train(stock))
 
