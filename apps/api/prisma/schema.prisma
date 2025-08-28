@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-py"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DIRECT_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id          String       @id
+  email       String       @unique
+  username    String       @unique
+  createdAt   DateTime     @default(now())
+  portfolios  Portfolio[]
+  predictions Prediction[]
+  watchlists  Watchlist[]
+}
+
+model Portfolio {
+  id         Int        @id @default(autoincrement())
+  userId     String
+  name       String
+  totalValue Float      @default(0.0)
+  cash       Float      @default(0.0)
+  createdAt  DateTime   @default(now())
+  user       User       @relation(fields: [userId], references: [id])
+  positions  Position[]
+  trades     Trade[]
+}
+
+model Position {
+  id          Int       @id @default(autoincrement())
+  portfolioId Int
+  stockId     Int
+  quantity    Int
+  avgPrice    Float
+  createdAt   DateTime  @default(now())
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id])
+  stock       Stock     @relation(fields: [stockId], references: [id])
+}
+
+model Stock {
+  id          Int          @id @default(autoincrement())
+  symbol      String       @unique
+  name        String
+  sector      String?
+  market      String?
+  createdAt   DateTime     @default(now())
+  positions   Position[]
+  predictions Prediction[]
+  trades      Trade[]
+  watchlists  Watchlist[]
+}
+
+model Trade {
+  id          Int       @id @default(autoincrement())
+  portfolioId Int
+  stockId     Int
+  tradeType   String
+  quantity    Int
+  price       Float
+  status      String
+  createdAt   DateTime  @default(now())
+  executedAt  DateTime?
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id])
+  stock       Stock     @relation(fields: [stockId], references: [id])
+}
+
+model Prediction {
+  id             Int      @id @default(autoincrement())
+  userId         String?
+  stockId        Int
+  modelName      String
+  predictionType String
+  predictedValue Float
+  confidence     Float
+  features       Json?
+  createdAt      DateTime @default(now())
+  horizon        String
+  stock          Stock    @relation(fields: [stockId], references: [id])
+  user           User?    @relation(fields: [userId], references: [id])
+}
+
+model Watchlist {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  stockId   Int
+  createdAt DateTime @default(now())
+  stock     Stock    @relation(fields: [stockId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+}
