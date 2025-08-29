@@ -4,6 +4,7 @@ import logging
 from src.routes.market import router as market_router
 from src.routes.predictions import router as predictions_router
 from src.routes.portfolio import router as portfolio_router
+from src.routes.users import router as users_router
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -27,4 +28,5 @@ async def read_root():
 app.include_router(market_router)
 app.include_router(predictions_router)
 app.include_router(portfolio_router)
+app.include_router(users_router)
 
