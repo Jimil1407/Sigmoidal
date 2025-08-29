@@ -1,13 +1,15 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, HTTPException
 from prisma import Prisma
 from pydantic import BaseModel
 from jose import jwt
-
+import os
+from passlib.context import CryptContext
 prisma = Prisma()
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 router = APIRouter(prefix="/api/v1/users", tags=["users"])
-
+secret = os.getenv("JWT_SECRET")
 class UserRequest(BaseModel):
     email: str
     password: str
@@ -40,8 +42,11 @@ async def getUser(user_id: str):
 async def createUser(user: UserResponse):
     await prisma.connect()
     try:
-        user_detail = await prisma.user.create(data=user.model_dump())
-        return user_detail.model_dump()
+        # hash password before saving
+        data = user.model_dump()
+        data["password"] = pwd_context.hash(user.password)
+        user_detail = await prisma.user.create(data=data)
+        return {"id": getattr(user_detail, "id", None), "email": user_detail.email, "username": getattr(user_detail, "username", None)}
     finally:
         await prisma.disconnect()
 
@@ -50,16 +55,17 @@ async def login(user: UserRequest):
     await prisma.connect()
     try:
         # Validate that user exists
-        user_detail = await prisma.user.find_unique(where={"email": user.email, "password": user.password})
-        if not user_detail:
+        user_detail = await prisma.user.find_unique(where={"email": user.email})
+        if not user_detail or not pwd_context.verify(user.password, getattr(user_detail, "password", "")):
             raise HTTPException(status_code=404, detail=f"User with email {user.email} not found")
         
         payload = {
             "id": getattr(user_detail, "id", None),
             "email": getattr(user_detail, "email", None),
             "username": getattr(user_detail, "username", None),
+            "exp": int((datetime.now(timezone.utc) + timedelta(hours=1)).timestamp()),
         }
-        token = jwt.encode(payload, "secret", algorithm="HS256")
+        token = jwt.encode(payload, secret, algorithm="HS256")
         return {"token": token}
     finally:
         await prisma.disconnect()
