@@ -1,57 +1,126 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, HTTPException
 from fastapi.responses import JSONResponse
-import yfinance as yf
+import os
+from datetime import datetime, timedelta, timezone
+import httpx
 
 router = APIRouter(prefix="/api/v1/market", tags=["market"])
 
 
 @router.get("/quote/{symbol}")
 async def get_current_price(symbol: str):
-    ticker = yf.Ticker(symbol).history(interval="1m", period="1d")
-    price = float(ticker['Close'][0])
-    return {"symbol": symbol, "price": price}
+    api_key = os.getenv("TWELVE_DATA_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="TWELVE_DATA_API_KEY not configured")
+
+    url = "https://api.twelvedata.com/price"
+    params = {"symbol": symbol.upper(), "apikey": api_key}
+    async with httpx.AsyncClient(timeout=10) as client:
+        resp = await client.get(url, params=params)
+        if resp.status_code != 200:
+            raise HTTPException(status_code=resp.status_code, detail=resp.text)
+        data = resp.json()
+        if "price" not in data:
+            # Twelve Data may return an error object with code/message
+            message = data.get("message") or data
+            raise HTTPException(status_code=404, detail=str(message))
+        return {"symbol": symbol.upper(), "price": float(data["price"])}
 
 
 @router.get("/quote")
 async def get_prices_multiple(symbols: str = Query(..., description="Comma Separated Symbols")):
-    results = []
+    api_key = os.getenv("TWELVE_DATA_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="TWELVE_DATA_API_KEY not configured")
+
     symbol_list = [s.strip().upper() for s in symbols.split(",") if s.strip()]
+    # Twelve Data supports multiple symbols in one call for /price
+    url = "https://api.twelvedata.com/price"
+    params = {"symbol": ",".join(symbol_list), "apikey": api_key}
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.get(url, params=params)
+        if resp.status_code != 200:
+            raise HTTPException(status_code=resp.status_code, detail=resp.text)
+        data = resp.json()
 
-    for symbol in symbol_list:
-        ticker_data = yf.Ticker(symbol).history(interval="1m", period="1d")
-
-        if ticker_data.empty or 'Close' not in ticker_data or ticker_data['Close'].isnull().all():
-            results.append({
-                "symbol": symbol,
-                "error": "no data found"
-            })
+    results = []
+    # When multiple symbols are requested, response is a dict keyed by symbol
+    for sym in symbol_list:
+        entry = data.get(sym)
+        if not entry:
+            results.append({"symbol": sym, "error": "no data found"})
+            continue
+        if "price" in entry:
+            results.append({"symbol": sym, "price": float(entry["price"])})
         else:
-            close_prices = ticker_data['Close'].dropna()
-            if not close_prices.empty:
-                price = float(close_prices.iloc[-1])
-                results.append({
-                    "symbol": symbol,
-                    "price": price
-                })
-            else:
-                results.append({
-                    "symbol": symbol,
-                    "price": "no close price"
-                })
-
+            results.append({"symbol": sym, "error": entry.get("message", "no data")})
     return results
 
 
 @router.get("/history/{symbol}")
 async def get_historical_data(
     symbol: str,
-    period: str = Query("1mo", description="Data period (e.g. 1d, 5d, 1mo, 6mo, 1y, 5y, max)"),
-    interval: str = Query("1d", description="Data interval (e.g. 1m, 5m, 15m, 1h, 1d, 1wk, 1mo)")
+    period: str = Query("1mo", description="1d, 5d, 1mo, 6mo, 1y, 5y"),
+    interval: str = Query("1d", description="1min, 5min, 15min, 1h, 1day, 1week, 1month")
 ):
-    df = yf.Ticker(symbol).history(period=period, interval=interval)
-    df = df.reset_index()
-    df["Date"] = df["Date"].astype(str)
-    result = df.to_dict(orient="records")
-    return JSONResponse(content=result)
+    api_key = os.getenv("TWELVE_DATA_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="TWELVE_DATA_API_KEY not configured")
+
+    # Map to Twelve Data interval values
+    interval_map = {
+        "1m": "1min",
+        "5m": "5min",
+        "15m": "15min",
+        "1h": "1h",
+        "1d": "1day",
+        "1wk": "1week",
+        "1mo": "1month",
+    }
+    td_interval = interval_map.get(interval, "1day")
+
+    # Compute date range
+    period_map = {
+        "1d": timedelta(days=1),
+        "5d": timedelta(days=5),
+        "1mo": timedelta(days=30),
+        "6mo": timedelta(days=182),
+        "1y": timedelta(days=365),
+        "5y": timedelta(days=365 * 5),
+    }
+    delta = period_map.get(period, timedelta(days=30))
+    end_dt = datetime.now(timezone.utc)
+    start_dt = end_dt - delta
+
+    url = "https://api.twelvedata.com/time_series"
+    params = {
+        "symbol": symbol.upper(),
+        "interval": td_interval,
+        "start_date": start_dt.strftime("%Y-%m-%d %H:%M:%S"),
+        "end_date": end_dt.strftime("%Y-%m-%d %H:%M:%S"),
+        "timezone": "UTC",
+        "apikey": api_key,
+    }
+    async with httpx.AsyncClient(timeout=20) as client:
+        resp = await client.get(url, params=params)
+        if resp.status_code != 200:
+            raise HTTPException(status_code=resp.status_code, detail=resp.text)
+        data = resp.json()
+        if data.get("status") not in ("ok", None) or "values" not in data:
+            raise HTTPException(status_code=404, detail=data.get("message", "no data"))
+
+    values = data.get("values", [])
+    records = []
+    for v in reversed(values):  # ensure chronological order
+        records.append({
+            "Date": v.get("datetime"),
+            "Open": float(v.get("open")) if v.get("open") is not None else None,
+            "High": float(v.get("high")) if v.get("high") is not None else None,
+            "Low": float(v.get("low")) if v.get("low") is not None else None,
+            "Close": float(v.get("close")) if v.get("close") is not None else None,
+            "Volume": int(float(v.get("volume"))) if v.get("volume") is not None else None,
+        })
+
+    return JSONResponse(content=records)
 
 
