@@ -6,7 +6,8 @@ from src.routes.predictions import router as predictions_router
 from src.routes.portfolio import router as portfolio_router
 from src.routes.users import router as users_router
 from prisma import Prisma
-from src.websocket import register_websocket
+from src.websocket import register_websocket, polling_twelve_data
+import asyncio
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -33,5 +34,9 @@ app.include_router(market_router)
 app.include_router(predictions_router)
 app.include_router(portfolio_router)
 app.include_router(users_router)
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(polling_twelve_data())
 
 register_websocket(app)
