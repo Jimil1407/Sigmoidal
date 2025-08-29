@@ -3,7 +3,6 @@ from fastapi import APIRouter, HTTPException
 from prisma import Prisma
 from pydantic import BaseModel
 from jose import jwt
-import localStorage
 
 prisma = Prisma()
 
@@ -14,18 +13,17 @@ class UserRequest(BaseModel):
     password: str
 
 class UserResponse(BaseModel):
-    id: int
     email: str
     password: str
-    createdAt: datetime
-    updatedAt: datetime
+    username: str
+    
 
 @router.get("/allUsers")
 async def getUsers():
     await prisma.connect()
     try:
         users_detail = await prisma.user.find_many()
-        return users_detail.model_dump()
+        return users_detail
     finally:
         await prisma.disconnect()
 
@@ -33,13 +31,13 @@ async def getUsers():
 async def getUser(user_id: str):
     await prisma.connect()
     try:
-        user_detail = await prisma.user.find_unique(where={"id": int(user_id)})
-        return user_detail.model_dump()
+        user_detail = await prisma.user.find_unique(where={"id": user_id})
+        return user_detail
     finally:
         await prisma.disconnect()
 
 @router.post("/createUser")
-async def createUser(user: UserRequest):
+async def createUser(user: UserResponse):
     await prisma.connect()
     try:
         user_detail = await prisma.user.create(data=user.model_dump())
@@ -56,8 +54,12 @@ async def login(user: UserRequest):
         if not user_detail:
             raise HTTPException(status_code=404, detail=f"User with email {user.email} not found")
         
-        token = jwt.encode(user_detail.model_dump(), "secret")
-        localStorage.setItem("token", token)
+        payload = {
+            "id": getattr(user_detail, "id", None),
+            "email": getattr(user_detail, "email", None),
+            "username": getattr(user_detail, "username", None),
+        }
+        token = jwt.encode(payload, "secret", algorithm="HS256")
         return {"token": token}
     finally:
         await prisma.disconnect()
