@@ -102,6 +102,8 @@ def evaluate(X_test, y_test, stock: str):
     print(f"Mean Squared Error (MSE): {mse}")
     print(f"Root Mean Squared Error (RMSE): {rmse}")
 
+    return model_filename
+
 
 async def train(stock: str):
     df = get_data(stock)
@@ -111,12 +113,13 @@ async def train(stock: str):
         return 500
     X_train, X_test, y_train, y_test = preprocess(df)
     model_train(X_train, X_test, y_train, y_test,stock)
-    evaluate(X_test, y_test, stock)
+    path = evaluate(X_test, y_test, stock)
 
-    return 200
+    return X_test, df, path, 200
+
 
 
 if __name__ == "__main__":
     stock = str(input("Enter the stock symbol: "))
-    asyncio.run(train(stock))
+    X_test, df, path, status = asyncio.run(train(stock))
 
