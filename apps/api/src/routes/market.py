@@ -31,7 +31,7 @@ async def get_current_price(symbol: str):
 async def get_prices_multiple(symbols: str = Query(..., description="Comma Separated Symbols")):
     api_key = os.getenv("TWELVE_DATA_API_KEY")
     if not api_key:
-        raise HTTPException(status_code=500, detail="TWELVE_DATA_API_KEY not configured")
+        raise HTTPException(status_code=500, detail="TWELVE_DATA_API_KEY not yet configured")
 
     symbol_list = [s.strip().upper() for s in symbols.split(",") if s.strip()]
     # Twelve Data supports multiple symbols in one call for /price
