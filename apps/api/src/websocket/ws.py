@@ -7,8 +7,8 @@ API_KEY = os.getenv("TWELVE_DATA_API_KEY")
 
 class ConnectionManager:
     def __init__(self):
-        self.active_connections = {}  # user_id → websocket
-        self.symbol_subscriptions = {}  # symbol → set(user_id)
+        self.active_connections = {}  
+        self.symbol_subscriptions = {} 
 
     async def connect(self, user_id, websocket):
         await websocket.accept()
@@ -42,7 +42,6 @@ manager = ConnectionManager()
         
 async def polling_twelve_data():
     while True:
-        # Gather all unique symbols currently subscribed to
         symbols = list(manager.symbol_subscriptions.keys())
         for symbol in symbols:
             price = await get_twelve_price(symbol)
@@ -52,7 +51,7 @@ async def polling_twelve_data():
                     "symbol": symbol,
                     "price": price,
                 })
-        await asyncio.sleep(5)  # Every 5 seconds
+        await asyncio.sleep(5) 
 
 
 def register_websocket(app):
