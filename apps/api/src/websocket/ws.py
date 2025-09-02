@@ -51,6 +51,10 @@ async def polling_twelve_data():
                     "symbol": symbol,
                     "price": price,
                 })
+            else:
+                await manager.broadcast(ValueError,{
+                    "Error": ValueError
+                })
         await asyncio.sleep(5) 
 
 
