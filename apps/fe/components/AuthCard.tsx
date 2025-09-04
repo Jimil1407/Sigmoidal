@@ -1,12 +1,16 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
+import axios from "axios";
+import { toast } from "react-toastify";
+import { useRouter } from "next/navigation";
 
 type AuthCardProps = {
   mode: "signin" | "signup";
 };
 
 export default function AuthCard({ mode }: AuthCardProps) {
+  const router = useRouter();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,14 +23,36 @@ export default function AuthCard({ mode }: AuthCardProps) {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      // TODO: Hook up API
       await new Promise((r) => setTimeout(r, 800));
-      // no-op
+  
+      if (isSignup) {
+        try {
+          await axios.post("http://0.0.0.0:8080/api/v1/users/createUser", { email, password, username });
+          toast.success("Account created successfully");
+          router.push("/signin");
+        } catch (error: any) {
+          const message = error?.response?.data?.detail || error?.message || "Error creating account";
+          toast.error(message);
+          return;
+        }
+      } else {
+        try {
+          const response = await axios.post("http://0.0.0.0:8080/api/v1/users/login", { email, password });
+          const { token } = response.data;
+          toast.success("Logged in successfully");
+          localStorage.setItem("token", token);
+          router.push("/dashboard");
+        } catch (error: any) {
+          const message = error?.response?.data?.detail || error?.message || "Error logging in";
+          toast.error(message);
+          return;
+        }
+      }
     } finally {
       setIsSubmitting(false);
     }
   }
-
+  
   return (
     <div className="w-full max-w-md mx-auto">
       <div className="relative rounded-2xl p-[1px] bg-gradient-to-br from-white/10 via-[#7B6CF6]/20 to-white/10">
