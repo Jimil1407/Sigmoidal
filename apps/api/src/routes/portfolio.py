@@ -22,7 +22,6 @@ async def get_portfolio(request: Request):
     try:
         token = request.headers.get("Authorization")
         userId = jwt.decode(token, os.getenv("JWT_SECRET"), algorithms=["HS256"])["id"]
-        print(userId)
         portfolio_detail = await prisma.portfolio.find_first(where={"userId": userId})
         if portfolio_detail is None:
             raise HTTPException(status_code=404, detail="Portfolio not found")

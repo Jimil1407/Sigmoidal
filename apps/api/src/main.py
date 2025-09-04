@@ -12,6 +12,10 @@ import asyncio
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Silence noisy third-party loggers
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
     
 
 app = FastAPI(title="Trading Dashboard API", version="1.0.0")
