@@ -34,12 +34,12 @@ model Portfolio {
 model Position {
   id          Int       @id @default(autoincrement())
   portfolioId Int
-  stockId     Int
+  stockSymbol String
   quantity    Int
   avgPrice    Float
   createdAt   DateTime  @default(now())
   portfolio   Portfolio @relation(fields: [portfolioId], references: [id])
-  stock       Stock     @relation(fields: [stockId], references: [id])
+  stock       Stock     @relation(fields: [stockSymbol], references: [symbol])
 }
 
 model Stock {
