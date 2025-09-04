@@ -6,16 +6,18 @@ from src.routes.predictions import router as predictions_router
 from src.routes.portfolio import router as portfolio_router
 from src.routes.users import router as users_router
 from prisma import Prisma
-from src.websocket import register_websocket, polling_twelve_data
+from src.websocket import register_websocket
 import asyncio
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# Configure logging - Set to WARNING to reduce noise and security risks
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
-# Silence noisy third-party loggers
-logging.getLogger("httpx").setLevel(logging.WARNING)
-logging.getLogger("httpcore").setLevel(logging.WARNING)
+# Silence all third-party loggers
+logging.getLogger("httpx").setLevel(logging.ERROR)
+logging.getLogger("httpcore").setLevel(logging.ERROR)
+logging.getLogger("uvicorn.access").setLevel(logging.ERROR)
+logging.getLogger("uvicorn.error").setLevel(logging.ERROR)
     
 
 app = FastAPI(title="Trading Dashboard API", version="1.0.0")
@@ -41,6 +43,6 @@ app.include_router(users_router)
 
 @app.on_event("startup")
 async def startup_event():
-    asyncio.create_task(polling_twelve_data())
+    pass
 
 register_websocket(app)

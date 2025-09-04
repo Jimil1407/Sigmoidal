@@ -64,7 +64,7 @@ model Trade {
   price       Float
   status      String
   createdAt   DateTime  @default(now())
-  executedAt  DateTime?
+  executedAt  DateTime? @default(now())
   portfolio   Portfolio @relation(fields: [portfolioId], references: [id])
   stock       Stock     @relation(fields: [stockSymbol], references: [symbol])
 }
