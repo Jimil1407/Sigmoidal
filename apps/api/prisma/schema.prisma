@@ -21,7 +21,7 @@ model User {
 
 model Portfolio {
   id         Int        @id @default(autoincrement())
-  userId     String
+  userId     String     
   name       String
   totalValue Float      @default(0.0)
   cash       Float      @default(0.0)

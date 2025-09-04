@@ -34,8 +34,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: "Sigmoidal",
     description: "AI-powered trading analytics, signals, and portfolio intelligence.",
-  },
-  themeColor: "#0B0C14",
+  }
 };
 
 export default function RootLayout({

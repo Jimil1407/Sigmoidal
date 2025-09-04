@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/v1/users", tags=["users"])
 prisma = Prisma()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-secret = os.getenv("JWT_SECRET") or "dev-secret-change-me"
+secret = os.getenv("JWT_SECRET")
 
 class UserRequest(BaseModel):
     email: EmailStr
@@ -67,7 +67,8 @@ async def createUser(user: UserCreateRequest):
         hashed = pwd_context.hash(user.password)
         normalized_username = user.username.strip()
         created = await prisma.user.create(data={"email": user.email, "password": hashed, "username": normalized_username})
-        return {"id": getattr(created, "id", None), "email": created.email, "username": getattr(created, "username", None)}
+        portfolio = await prisma.portfolio.create(data={"userId": created.id, "name": normalized_username + "'s Portfolio", "totalValue": 0.0, "cash": 0.0})
+        return {"id": getattr(created, "id", None), "email": created.email, "username": getattr(created, "username", None), "portolio created with id": portfolio.id}
     except HTTPException:
         raise
     except Exception as e:
