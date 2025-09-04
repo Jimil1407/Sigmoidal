@@ -2,8 +2,11 @@
 import PlaceTrade from "@/components/PlaceTrade";
 import LiveData from "@/components/LiveData";
 import PortfolioInfo from "@/components/PortfolioInfo";
+import { useRef } from "react";
 
 export default function Dashboard() {
+  const refreshRef = useRef<null | (() => Promise<void>)>(null);
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
       <nav className="w-full sticky top-0 z-10 backdrop-blur supports-[backdrop-filter]:bg-white/5 bg-white/0 border-b border-white/10">
@@ -29,11 +32,11 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         <div className="lg:col-span-2 space-y-6">
-          <PortfolioInfo />
+          <PortfolioInfo exposeRefresh={(fn) => { refreshRef.current = fn; }} />
         </div>
 
         <div className="space-y-6 lg:sticky lg:top-24">
-          <PlaceTrade />
+          <PlaceTrade onPlaced={() => refreshRef.current?.()} />
           <LiveData />
         </div>
       </div>

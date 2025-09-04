@@ -1,6 +1,12 @@
+"use client";
 import axios from "axios";
 import { toast } from "react-toastify";
-export default function PlaceTrade() {
+
+type PlaceTradeProps = {
+    onPlaced?: () => void;
+};
+
+export default function PlaceTrade({ onPlaced }: PlaceTradeProps) {
     const handleSubmitTrade = async (e: React.FormEvent) => {
     try {
     e.preventDefault();
@@ -13,6 +19,7 @@ export default function PlaceTrade() {
     const price = await axios.get(`http://localhost:8080/api/v1/market/quote/${stockSymbol}`, { headers: authHeader });
     await axios.post(`http://localhost:8080/api/v1/portfolio/myportfolio/trade`, { quantity, stockSymbol, tradeType, price: price.data.price }, { headers: authHeader });
         toast.success("Trade placed successfully");
+        onPlaced?.();
     } catch (error) {
         toast.error("Error placing trade");
         console.error(error);

@@ -11,20 +11,24 @@ export type Portfolio = {
 export type Position = {
     id: number;
     portfolioId: number;
-    stockId: number;
+    stockSymbol: string;
     quantity: number;
     avgPrice: number;
 };
 export type Trade = {
     id: number;
     portfolioId: number;
-    stockId: number;
+    stockSymbol: string;
     tradeType: string;
     quantity: number;
     price: number;
 };
 
-export default function PortfolioInfo() {
+type PortfolioInfoProps = {
+    exposeRefresh?: (fn: () => Promise<void>) => void;
+};
+
+export default function PortfolioInfo({ exposeRefresh }: PortfolioInfoProps) {
     const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
     const [positions, setPositions] = useState<Position[] | null>(null);
     const [trades, setTrades] = useState<Trade[] | null>(null);
@@ -44,6 +48,12 @@ export default function PortfolioInfo() {
     useEffect(() => {
         fetchData();
     }, []);
+
+    useEffect(() => {
+        if (exposeRefresh) {
+            exposeRefresh(fetchData);
+        }
+    }, [exposeRefresh]);
 
     return (
         <div className="space-y-6">
@@ -79,9 +89,9 @@ export default function PortfolioInfo() {
                     <div className="space-y-3">
                         {positions?.length ? positions.map((p) => (
                             <div key={p.id} className="flex items-center justify-between rounded-xl border border-white/10 bg-[#0B0C14] px-4 py-3">
-                                <div className="text-sm">#{p.stockId}</div>
+                                <div className="text-sm">{p.stockSymbol}</div>
                                 <div className="text-sm text-white/70">Qty {p.quantity}</div>
-                                <div className="text-sm font-medium">@ {p.avgPrice}</div>
+                                <div className="text-sm font-medium">${p.avgPrice}</div>
                             </div>
                         )) : (
                             <div className="text-sm text-white/60">No positions yet.</div>
@@ -98,9 +108,9 @@ export default function PortfolioInfo() {
                         {trades?.length ? trades.map((t) => (
                             <div key={t.id} className="grid grid-cols-4 gap-3 items-center rounded-xl border border-white/10 bg-[#0B0C14] px-4 py-3">
                                 <div className="text-sm">{t.tradeType}</div>
-                                <div className="text-sm text-white/70">#{t.stockId}</div>
+                                <div className="text-sm text-white/70">{t.stockSymbol}</div>
                                 <div className="text-sm">Qty {t.quantity}</div>
-                                <div className="text-sm font-medium">@ {t.price}</div>
+                                <div className="text-sm font-medium"> ${t.price}</div>
                             </div>
                         )) : (
                             <div className="text-sm text-white/60">No trades yet.</div>
