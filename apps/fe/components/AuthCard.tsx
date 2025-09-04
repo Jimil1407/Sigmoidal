@@ -57,6 +57,13 @@ export default function AuthCard({ mode }: AuthCardProps) {
     <div className="w-full max-w-md mx-auto">
       <div className="relative rounded-2xl p-[1px] bg-gradient-to-br from-white/10 via-[#7B6CF6]/20 to-white/10">
         <div className="rounded-2xl border border-white/10 bg-[#0B0C14]/90 p-6 shadow-xl">
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="h-6 w-6 rounded-md bg-[#7B6CF6]" />
+              <span className="font-semibold">Sigmoidal</span>
+            </div>
+   
+          </div>
           <div className="mb-5">
             <div className="inline-flex items-center gap-2 text-xs text-white/70 bg-white/5 border border-white/10 px-3 py-1 rounded-full">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />

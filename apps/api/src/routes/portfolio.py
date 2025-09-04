@@ -7,10 +7,10 @@ from jose import jwt
 prisma = Prisma()
 
 class TradeRequest(BaseModel):
-    stockId: int
+    stockSymbol: str
     tradeType: str  # "BUY" or "SELL"
     quantity: int
-    price: float
+    price: float = 0.0
     status: str = "PENDING"  # default value
 
 router = APIRouter(prefix="/api/v1/portfolio", tags=["portfolio"])
@@ -58,9 +58,9 @@ async def make_trade(trade: TradeRequest, request: Request):
     await prisma.connect()
     try:
         # Validate that stock exists
-        stock = await prisma.stock.find_unique(where={"id": trade.stockId})
+        stock = await prisma.stock.find_unique(where={"symbol": trade.stockSymbol})
         if not stock:
-            raise HTTPException(status_code=404, detail=f"Stock with ID {trade.stockId} not found")
+            raise HTTPException(status_code=404, detail=f"Stock with ID {trade.stockSymbol} not found")
         
         # Validate that portfolio exists
         token = request.headers.get("Authorization")
@@ -72,12 +72,15 @@ async def make_trade(trade: TradeRequest, request: Request):
         trades_detail = await prisma.trade.create(
             data={
                 "portfolioId": portfolio.id,
-                "stockId": trade.stockId,
+                "stockSymbol": trade.stockSymbol,
                 "tradeType": trade.tradeType,
                 "quantity": trade.quantity,
                 "price": trade.price,
                 "status": trade.status,
             })
+        if(trades_detail):
+            trade.status = "COMPLETED"
+            await prisma.trade.update(where={"id": trades_detail.id}, data=trade.model_dump())
         return trades_detail.model_dump()
     finally:
         await prisma.disconnect()
