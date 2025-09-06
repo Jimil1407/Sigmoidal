@@ -3,6 +3,7 @@ import PlaceTrade from "@/components/PlaceTrade";
 import LiveData from "@/components/LiveData";
 import PortfolioInfo from "@/components/PortfolioInfo";
 import { useRef, useState } from "react";
+import PredictPage from "@/app/predict/page";
 
 export default function Dashboard() {
   const refreshRef = useRef<null | (() => Promise<void>)>(null);
@@ -13,7 +14,7 @@ export default function Dashboard() {
     { id: "portfolio", label: "Portfolio", href: "#portfolio" },
     { id: "positions", label: "Positions", href: "#positions" },
     { id: "trades", label: "Trades", href: "#trades" },
-    { id: "live", label: "Live", href: "#live" }
+    { id: "predict", label: "Predict", href: "#predict" }
   ];
 
   return (
@@ -117,6 +118,7 @@ export default function Dashboard() {
         <div className="space-y-6 lg:sticky lg:top-24">
           <PlaceTrade onPlaced={() => refreshRef.current?.()} />
           <LiveData />
+          <PredictPage />
         </div>
       </div>
     </div>

@@ -18,7 +18,7 @@ class ConnectionManager:
 
     async def connect(self, websocket, userId):
         await websocket.accept()
-        self.active_connections[userId] = websocket
+        self.active_connections[userId] = websocket 
 
     def disconnect(self, userId):
         self.active_connections.pop(userId, None)
@@ -233,7 +233,6 @@ def register_websocket(app):
                     await websocket.send_json({"status": "unsubscribed", "symbol": symbol})
         except WebSocketDisconnect:
             manager.disconnect(userId)
-
 
 
 

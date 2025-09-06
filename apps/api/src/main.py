@@ -22,6 +22,10 @@ logging.getLogger("uvicorn.error").setLevel(logging.ERROR)
 
 app = FastAPI(title="Trading Dashboard API", version="1.0.0")
 
+# Configure timeout for long-running requests
+import uvicorn
+from uvicorn.config import Config
+
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,

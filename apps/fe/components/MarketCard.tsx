@@ -14,9 +14,10 @@ type MarketCardProps = {
     symbol: string;
     onRemove: () => void;
     data?: MarketData | null;
+    isRealTime?: boolean;
 };
 
-export default function MarketCard({ symbol, onRemove, data }: MarketCardProps) {
+export default function MarketCard({ symbol, onRemove, data, isRealTime = false }: MarketCardProps) {
 
     const isPositive = data?.change && data.change >= 0;
     const isNegative = data?.change && data.change < 0;
@@ -35,7 +36,15 @@ export default function MarketCard({ symbol, onRemove, data }: MarketCardProps) 
 
             {/* Symbol */}
             <div className="mb-3">
-                <h3 className="text-lg font-bold text-white">{symbol}</h3>
+                <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-white">{symbol}</h3>
+                    {isRealTime && (
+                        <div className="flex items-center gap-1">
+                            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                            <span className="text-xs text-green-400 font-medium">Live</span>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Current Price */}

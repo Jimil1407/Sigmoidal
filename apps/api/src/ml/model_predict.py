@@ -13,25 +13,33 @@ directory = "../models"
 os.makedirs(directory, exist_ok=True)
 
 
-def get_data(symbol: str):
+async def get_data(symbol: str):
     params = {
         "period": "9mo",
         "interval": "1d"
     }
-    response = httpx.get(
-        f"http://localhost:8080/api/v1/market/history/{symbol}",
-        params=params
-    )
     try:
-        response.raise_for_status()
-        # If API returns JSON array of records
-        df = pd.DataFrame(response.json())
-        print(df.head())
-        print(df.info())
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"http://localhost:8080/api/v1/market/history/{symbol}",
+                params=params,
+                timeout=30.0  # 30 second timeout
+            )
+            response.raise_for_status()
+            # If API returns JSON array of records
+            df = pd.DataFrame(response.json())
+            print(df.head())
+            print(df.info())
+            return df
+    except httpx.TimeoutException:
+        print(f"Timeout error: Request to market history API timed out for {symbol}")
+        return None
+    except httpx.HTTPStatusError as exc:
+        print(f"HTTP error {exc.response.status_code}: {exc.response.text}")
+        return None
     except Exception as exc:
         print(f"Error fetching or parsing data: {exc}")
-        df = None
-    return df
+        return None
 
 def preprocess(df):
     df['Date'] = pd.to_datetime(df['Date'])
@@ -106,7 +114,7 @@ def evaluate(X_test, y_test, stock: str):
 
 
 async def train(stock: str):
-    df = get_data(stock)
+    df = await get_data(stock)
     if df is None:
         print("No data returned for training. Aborting.")
     
@@ -148,7 +156,7 @@ def prediction(X_test, df, model_path: str):
         return 500
     
 async def predict(stock : str):
-    df = get_data(stock)
+    df = await get_data(stock)
     if df is None:
         print("No data returned for training. Aborting.")
     
