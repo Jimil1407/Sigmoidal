@@ -1,12 +1,12 @@
 from fastapi import APIRouter, HTTPException
-from src.ml.model_train import train, preprocess
-from src.ml.model_predict import prediction
+from src.ml.model_train import train
+from src.ml.model_predict import predict_stock
 from src.ml.model_predict import get_data
 import os
 
 router = APIRouter(prefix="/api/v1/predictions", tags=["predictions"])
 
-@router.post("/train/{symbol}")
+@router.get("/train/{symbol}")
 async def start_train(symbol: str):
     await train(symbol)
     return {"symbol": symbol, "status": "training_completed"}
@@ -20,8 +20,7 @@ async def get_prediction(symbol: str):
         df = await get_data(symbol)
         if df is None:
             raise HTTPException(status_code=502, detail="Failed to fetch market data for prediction")
-        X_train, X_test, y_train, y_test = preprocess(df)
-        prediction_result = prediction(X_test, df, model_path)
+        prediction_result = await predict_stock(symbol)
         
         # Handle error cases
         if prediction_result == 500:
