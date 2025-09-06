@@ -8,7 +8,7 @@ export default function PredictValue() {
 
     const predictValue = async () => {
         const response = await axios.get(`http://localhost:8080/api/v1/predictions/predict/${symbol}`);
-        setPrediction(response.data);
+        setPrediction("Predicted value: " + response.data.prediction);
     }
 
     return (
