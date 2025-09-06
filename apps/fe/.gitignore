@@ -38,4 +38,6 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+apps/api/src/models
+apps/api/src/scalers
 next-env.d.ts
