@@ -6,6 +6,15 @@ from jose import jwt
 
 prisma = Prisma()
 
+async def get_prisma():
+    """Get Prisma client, connect if not already connected"""
+    try:
+        await prisma.connect()
+    except Exception:
+        # Already connected or connection error, continue
+        pass
+    return prisma
+
 class TradeRequest(BaseModel):
     stockSymbol: str
     tradeType: str  # "BUY" or "SELL"
@@ -18,59 +27,59 @@ router = APIRouter(prefix="/api/v1/portfolio", tags=["portfolio"])
 
 @router.get("/myportfolio")
 async def get_portfolio(request: Request):
-    await prisma.connect()
+    db = await get_prisma()
     try:
         token = request.headers.get("Authorization")
         userId = jwt.decode(token, os.getenv("JWT_SECRET"), algorithms=["HS256"]) ["id"]
-        portfolio_detail = await prisma.portfolio.find_first(where={"userId": userId})
+        portfolio_detail = await db.portfolio.find_first(where={"userId": userId})
         if portfolio_detail is None:
             raise HTTPException(status_code=404, detail="Portfolio not found")
         return portfolio_detail.model_dump()
-    finally:
-        await prisma.disconnect()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @router.get("/myportfolio/positions")
 async def get_positions(request: Request):
-    await prisma.connect()
+    db = await get_prisma()
     try:
         token = request.headers.get("Authorization")
         userId = jwt.decode(token, os.getenv("JWT_SECRET"), algorithms=["HS256"]) ["id"]
-        portfolio_detail = await prisma.portfolio.find_first(where={"userId": userId})
-        position_detail = await prisma.position.find_many(where={"portfolioId": portfolio_detail.id})
+        portfolio_detail = await db.portfolio.find_first(where={"userId": userId})
+        position_detail = await db.position.find_many(where={"portfolioId": portfolio_detail.id})
         return [position.model_dump() for position in position_detail]
-    finally:
-        await prisma.disconnect()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @router.get("/myportfolio/trades")
 async def get_trades(request: Request):
-    await prisma.connect()
+    db = await get_prisma()
     try:
         token = request.headers.get("Authorization")
         userId = jwt.decode(token, os.getenv("JWT_SECRET"), algorithms=["HS256"]) ["id"]
-        portfolio_detail = await prisma.portfolio.find_first(where={"userId": userId})
-        trades_detail = await prisma.trade.find_many(where={"portfolioId": portfolio_detail.id})
+        portfolio_detail = await db.portfolio.find_first(where={"userId": userId})
+        trades_detail = await db.trade.find_many(where={"portfolioId": portfolio_detail.id})
         return [trade.model_dump() for trade in trades_detail]
-    finally:
-        await prisma.disconnect()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @router.post("/myportfolio/trade")
 async def make_trade(trade: TradeRequest, request: Request):
-    await prisma.connect()
+    db = await get_prisma()
     try:
         # Validate stock exists
-        stock = await prisma.stock.find_unique(where={"symbol": trade.stockSymbol})
+        stock = await db.stock.find_unique(where={"symbol": trade.stockSymbol})
         if not stock:
             raise HTTPException(status_code=404, detail=f"Stock with ID {trade.stockSymbol} not found")
         
         # Validate portfolio exists
         token = request.headers.get("Authorization")
         userId = jwt.decode(token, os.getenv("JWT_SECRET"), algorithms=["HS256"]) ["id"]
-        portfolio = await prisma.portfolio.find_first(where={"userId": userId})
+        portfolio = await db.portfolio.find_first(where={"userId": userId})
         if not portfolio:
             raise HTTPException(status_code=404, detail=f"Portfolio with ID {userId} not found")
         
         # Transaction: create/update position, update portfolio, create trade and mark COMPLETED
-        async with prisma.tx() as tx:
+        async with db.tx() as tx:
             # Get existing position by (portfolioId, stockSymbol)
             existing_position = await tx.position.find_first(
                 where={
@@ -134,5 +143,5 @@ async def make_trade(trade: TradeRequest, request: Request):
             )
 
         return completed.model_dump()
-    finally:
-        await prisma.disconnect()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")

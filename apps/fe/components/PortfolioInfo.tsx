@@ -39,10 +39,14 @@ export default function PortfolioInfo({ exposeRefresh }: PortfolioInfoProps) {
         const authHeader = { Authorization: token } as const;
         const response = await axios.get(`http://localhost:8080/api/v1/portfolio/myportfolio`, { headers: authHeader });
         setPortfolio(response.data as Portfolio);
+        
         const positionsResponse = await axios.get(`http://localhost:8080/api/v1/portfolio/myportfolio/positions`, { headers: authHeader });
         setPositions(positionsResponse.data as Position[]);
+
+    
         const tradesResponse = await axios.get(`http://localhost:8080/api/v1/portfolio/myportfolio/trades`, { headers: authHeader });
         setTrades(tradesResponse.data as Trade[]);
+        
     };
 
     useEffect(() => {
