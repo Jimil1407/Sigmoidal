@@ -12,6 +12,21 @@ from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import LSTM, Dense, Dropout
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 
+import snscrape.modules.twitter as sntwitter
+
+tweets = []
+for i, tweet in enumerate(sntwitter.TwitterSearchScraper(f'${symbol} since:{start_date} until:{end_date}').get_items()):
+    if i > max_tweets_per_day:  # control tweet load
+        break
+    tweets.append({
+        'date': tweet.date,
+        'content': tweet.content,
+        'retweetCount': tweet.retweetCount,
+    })
+
+print(tweets)
+
+
 # Directory setup
 MODELS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "models"))
 SCALERS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "scalers"))
