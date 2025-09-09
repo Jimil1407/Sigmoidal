@@ -3,6 +3,7 @@ from prisma import Prisma
 from pydantic import BaseModel
 import os
 from jose import jwt
+import httpx
 
 prisma = Prisma()
 
@@ -66,11 +67,32 @@ async def get_trades(request: Request):
 async def make_trade(trade: TradeRequest, request: Request):
     db = await get_prisma()
     try:
-        # Validate stock exists
-        stock = await db.stock.find_unique(where={"symbol": trade.stockSymbol})
-        if not stock:
-            raise HTTPException(status_code=404, detail=f"Stock with ID {trade.stockSymbol} not found")
-        
+        # Fetch live price directly
+        symbol = trade.stockSymbol.upper()
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(f"http://localhost:8080/api/v1/market/quote/{symbol}")
+            if resp.status_code != 200:
+                raise HTTPException(status_code=resp.status_code, detail=f"Failed to fetch price for {symbol}: {resp.text}")
+            live = resp.json()
+            current_price = float(live.get("price"))
+            if not current_price or current_price <= 0:
+                raise HTTPException(status_code=400, detail=f"Invalid live price for {symbol}")
+
+        # Ensure Stock exists to satisfy FK constraints (auto-create if missing)
+        try:
+            await db.stock.upsert(
+                where={"symbol": symbol},
+                data={
+                    "create": {"symbol": symbol, "name": symbol},
+                    "update": {"name": symbol},
+                },
+            )
+        except Exception:
+            # If upsert not supported in this client version, fallback to find-or-create
+            existing = await db.stock.find_unique(where={"symbol": symbol})
+            if not existing:
+                await db.stock.create(data={"symbol": symbol, "name": symbol})
+
         # Validate portfolio exists
         token = request.headers.get("Authorization")
         userId = jwt.decode(token, os.getenv("JWT_SECRET"), algorithms=["HS256"]) ["id"]
@@ -88,18 +110,31 @@ async def make_trade(trade: TradeRequest, request: Request):
                 }
             )
 
+            trade_qty = trade.quantity
+            trade_type = trade.tradeType.upper()
+
             if not existing_position:
+                if trade_type == "SELL":
+                    raise HTTPException(status_code=400, detail="Cannot sell a position you don't own")
                 position = await tx.position.create(data={
                     "portfolioId": portfolio.id,
                     "stockSymbol": trade.stockSymbol,
-                    "quantity": trade.quantity,
-                    "avgPrice": trade.price,
+                    "quantity": trade_qty,
+                    "avgPrice": current_price,
                 })
             else:
-                new_quantity = existing_position.quantity + trade.quantity
-                new_avg_price = (
-                    (existing_position.avgPrice * existing_position.quantity + trade.price * trade.quantity) / new_quantity
-                ) if new_quantity > 0 else 0
+                if trade_type == "BUY":
+                    new_quantity = existing_position.quantity + trade_qty
+                    new_avg_price = (
+                        (existing_position.avgPrice * existing_position.quantity + current_price * trade_qty) / new_quantity
+                    ) if new_quantity > 0 else 0
+                else:  # SELL
+                    new_quantity = existing_position.quantity - trade_qty
+                    if new_quantity < 0:
+                        raise HTTPException(status_code=400, detail="Sell quantity exceeds position size")
+                    # Average price typically unchanged on sell; reset to 0 if flat
+                    new_avg_price = existing_position.avgPrice if new_quantity > 0 else 0
+
                 position = await tx.position.update(
                     where={"id": existing_position.id},
                     data={
@@ -109,8 +144,8 @@ async def make_trade(trade: TradeRequest, request: Request):
                 )
 
             # Update portfolio totals depending on trade type
-            delta = trade.quantity * trade.price
-            if trade.tradeType.upper() == "BUY":
+            delta = trade_qty * current_price
+            if trade_type == "BUY":
                 new_total = portfolio.totalValue + delta
                 new_cash = portfolio.cash - delta
             else:
@@ -130,9 +165,9 @@ async def make_trade(trade: TradeRequest, request: Request):
                 data={
                     "portfolioId": portfolio.id,
                     "stockSymbol": trade.stockSymbol,
-                    "tradeType": trade.tradeType,
-                    "quantity": trade.quantity,
-                    "price": trade.price,
+                    "tradeType": trade_type,
+                    "quantity": trade_qty,
+                    "price": current_price,
                     "status": "PENDING",
                 }
             )
