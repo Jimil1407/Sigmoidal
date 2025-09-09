@@ -3,12 +3,13 @@ import asyncio
 import pandas as pd
 import numpy as np
 import ta
+import shutil
 import joblib
 from datetime import datetime, timedelta
 
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import Sequential, load_model
-from tensorflow.keras.layers import LSTM, Dense, Dropout
+from tensorflow.keras.layers import LSTM, Dense, Dropout, Input
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 
 # Directory setup
@@ -68,7 +69,8 @@ def preprocess(df: pd.DataFrame, seq_len=60):
 
 def build_model(input_shape):
     model = Sequential([
-        LSTM(64, return_sequences=True, input_shape=input_shape),
+        Input(shape=input_shape),
+        LSTM(64, return_sequences=True),
         Dropout(0.2),
         LSTM(64),
         Dropout(0.2),
@@ -77,6 +79,45 @@ def build_model(input_shape):
     ])
     model.compile(optimizer='adam', loss='huber')
     return model
+
+def _timestamp() -> str:
+    return datetime.now().strftime('%Y%m%d%H%M%S')
+
+def _version_artifacts(symbol: str, base_model_path: str):
+    ts = _timestamp()
+    # Model versions
+    ts_model = os.path.join(MODELS_DIR, f"{symbol}-{ts}.keras")
+    latest_model = os.path.join(MODELS_DIR, f"{symbol}_latest.keras")
+    shutil.copyfile(base_model_path, ts_model)
+    shutil.copyfile(base_model_path, latest_model)
+    # Scaler versions
+    feat_src = os.path.join(SCALERS_DIR, 'feat_scaler.gz')
+    tgt_src  = os.path.join(SCALERS_DIR, 'tgt_scaler.gz')
+    feat_ts = os.path.join(SCALERS_DIR, f"feat_scaler-{symbol}-{ts}.gz")
+    tgt_ts  = os.path.join(SCALERS_DIR, f"tgt_scaler-{symbol}-{ts}.gz")
+    feat_latest = os.path.join(SCALERS_DIR, f"feat_scaler-{symbol}_latest.gz")
+    tgt_latest  = os.path.join(SCALERS_DIR, f"tgt_scaler-{symbol}_latest.gz")
+    if os.path.exists(feat_src):
+        shutil.copyfile(feat_src, feat_ts)
+        shutil.copyfile(feat_src, feat_latest)
+    if os.path.exists(tgt_src):
+        shutil.copyfile(tgt_src, tgt_ts)
+        shutil.copyfile(tgt_src, tgt_latest)
+    return {
+        'model_ts': ts_model,
+        'model_latest': latest_model,
+        'feat_scaler_ts': feat_ts,
+        'feat_scaler_latest': feat_latest,
+        'tgt_scaler_ts': tgt_ts,
+        'tgt_scaler_latest': tgt_latest,
+    }
+
+def _latest_artifacts(symbol: str):
+    return {
+        'model': os.path.join(MODELS_DIR, f"{symbol}_latest.keras"),
+        'feat_scaler': os.path.join(SCALERS_DIR, f"feat_scaler-{symbol}_latest.gz"),
+        'tgt_scaler': os.path.join(SCALERS_DIR, f"tgt_scaler-{symbol}_latest.gz"),
+    }
 
 def train_model(X_train, y_train, X_val, y_val, symbol):
     model = build_model(X_train.shape[1:])
@@ -95,7 +136,8 @@ def train_model(X_train, y_train, X_val, y_val, symbol):
     )
     final_path = os.path.join(MODELS_DIR, f"{symbol}.keras")
     model.save(final_path, include_optimizer=False)
-    return final_path, chkpt_path
+    versions = _version_artifacts(symbol, chkpt_path if os.path.exists(chkpt_path) else final_path)
+    return versions['model_latest'], versions['model_ts']
 
 def evaluate_and_predict(model_path, X_test, symbol):
     model = load_model(model_path)
@@ -104,6 +146,40 @@ def evaluate_and_predict(model_path, X_test, symbol):
     pred_scaled = model.predict(last_seq)
     pred_price  = tgt_scaler.inverse_transform(pred_scaled)[0,0]
     print(f"Next-day predicted close price for {symbol}: {pred_price:.2f}")
+    return pred_price
+
+# ---- PREDICT-ONLY (no retrain) ----
+
+def _build_features_only(df: pd.DataFrame) -> pd.DataFrame:
+    df = add_technical_indicators(df)
+    return df[['Open','High','Low','Close','Volume','RSI_14','SMA_20','BB_High','BB_Low']]
+
+async def predict_only(symbol: str, seq_len: int = 60):
+    artifacts = _latest_artifacts(symbol)
+    model_path = artifacts['model']
+    feat_scaler_path = artifacts['feat_scaler']
+    tgt_scaler_path  = artifacts['tgt_scaler']
+    if not (os.path.exists(model_path) and os.path.exists(feat_scaler_path) and os.path.exists(tgt_scaler_path)):
+        raise FileNotFoundError("Latest artifacts not found. Train the model first.")
+
+    df = await get_data(symbol)
+    feat_df = _build_features_only(df)
+    if len(feat_df) < seq_len + 1:
+        raise ValueError("Not enough data for prediction window.")
+
+    feat_scaler = joblib.load(feat_scaler_path)
+    tgt_scaler  = joblib.load(tgt_scaler_path)
+
+    data_scaled = feat_scaler.transform(feat_df.values)
+    X = []
+    for i in range(len(data_scaled) - seq_len):
+        X.append(data_scaled[i:i+seq_len])
+    X = np.array(X)
+    model = load_model(model_path)
+    last_seq = X[-1][None, ...]
+    pred_scaled = model.predict(last_seq)
+    pred_price  = tgt_scaler.inverse_transform(pred_scaled)[0,0]
+    print(f"Next-day predicted close price (no retrain) for {symbol}: {pred_price:.2f}")
     return pred_price
 
 # ---- END-TO-END ORCHESTRATOR ----
