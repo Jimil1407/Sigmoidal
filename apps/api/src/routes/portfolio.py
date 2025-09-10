@@ -17,7 +17,7 @@ async def get_prisma():
     return prisma
 
 class TradeRequest(BaseModel):
-    stockSymbol: str
+    stockSymbol: str #stock symbol
     tradeType: str  # "BUY" or "SELL"
     quantity: int
     price: float = 0.0
