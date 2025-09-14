@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 
 type PlaceTradeProps = {
     onPlaced?: () => void;
+    //props
 };
 
 export default function PlaceTrade({ onPlaced }: PlaceTradeProps) {
