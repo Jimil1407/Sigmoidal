@@ -1,4 +1,4 @@
-## Sigmoidal
+## Sigmoidal - AI based trading dashboard
 
 End-to-end trading dashboard monorepo combining a FastAPI backend with ML-driven stock predictions and a Next.js frontend. Sigmoidal provides live quotes and history via Twelve Data, user auth and portfolio/trade management backed by Prisma (SQLite), and TensorFlow models for per-symbol price prediction.
 
