@@ -13,7 +13,7 @@ End-to-end trading dashboard monorepo combining a FastAPI backend with ML-driven
 - User signup/login with JWT
 - Portfolio, positions, and trades with transactional updates
 - Per-symbol ML models (TensorFlow/Keras) for next price prediction
-- WebSocket hooks prepared for streaming updates
+- WebSocket hooks prepared for streaming update details.
 
 ---
 
