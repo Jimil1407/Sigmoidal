@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Wait for Postgres
+PORT="${PORT:-8080}"
+: "${API_INTERNAL_BASE_URL:="http://localhost:${PORT}"}"
+export API_INTERNAL_BASE_URL
+
+# Wait for Postgres if DIRECT_URL is provided
 if [[ -n "${DIRECT_URL:-}" ]]; then
   echo "Waiting for database..."
   python - <<'PY'
@@ -30,4 +34,4 @@ prisma generate
 prisma migrate deploy
 
 # Start API
-exec uvicorn src.main:app --host 0.0.0.0 --port 8080 --proxy-headers
+exec uvicorn src.main:app --host 0.0.0.0 --port "${PORT}" --proxy-headers
