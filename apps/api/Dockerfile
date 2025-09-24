@@ -29,9 +29,6 @@ COPY prisma ./prisma
 # Generate prisma client
 RUN prisma generate
 
-# Internal base for service-to-service calls
-ENV API_INTERNAL_BASE_URL=http://api:8080
-
 COPY start.sh /app/start.sh
 RUN chmod +x /app/start.sh
 
