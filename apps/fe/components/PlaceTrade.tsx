@@ -8,6 +8,7 @@ type PlaceTradeProps = {
 };
 
 export default function PlaceTrade({ onPlaced }: PlaceTradeProps) {
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
     const handleSubmitTrade = async (e: React.FormEvent) => {
     try {
     e.preventDefault();
@@ -17,8 +18,8 @@ export default function PlaceTrade({ onPlaced }: PlaceTradeProps) {
     const quantity = (e.target as HTMLFormElement).quantity.value;
     const stockSymbol = (e.target as HTMLFormElement).stockSymbol.value;
     const tradeType = (e.target as HTMLFormElement).tradeType.value;
-    const price = await axios.get(`http://localhost:8080/api/v1/market/quote/${stockSymbol}`, { headers: authHeader });
-    await axios.post(`http://localhost:8080/api/v1/portfolio/myportfolio/trade`, { quantity, stockSymbol, tradeType, price: price.data.price }, { headers: authHeader });
+    const price = await axios.get(`${apiBaseUrl}/api/v1/market/quote/${stockSymbol}`, { headers: authHeader });
+    await axios.post(`${apiBaseUrl}/api/v1/portfolio/myportfolio/trade`, { quantity, stockSymbol, tradeType, price: price.data.price }, { headers: authHeader });
         toast.success("Trade placed successfully");
         onPlaced?.();
     } catch (error) {

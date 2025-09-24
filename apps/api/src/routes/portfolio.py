@@ -70,7 +70,8 @@ async def make_trade(trade: TradeRequest, request: Request):
         # Fetch live price directly
         symbol = trade.stockSymbol.upper()
         async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(f"http://localhost:8080/api/v1/market/quote/{symbol}")
+            api_internal_base = os.getenv("API_INTERNAL_BASE_URL", "http://localhost:8080")
+            resp = await client.get(f"{api_internal_base}/api/v1/market/quote/{symbol}")
             if resp.status_code != 200:
                 raise HTTPException(status_code=resp.status_code, detail=f"Failed to fetch price for {symbol}: {resp.text}")
             live = resp.json()
