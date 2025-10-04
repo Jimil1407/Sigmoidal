@@ -15,7 +15,7 @@ export default function LiveData() {
     const [symbols, setSymbols] = useState<string[]>([]);
     const [inputSymbol, setInputSymbol] = useState("");
     const [marketData, setMarketData] = useState<Record<string, MarketData>>({});
-    const [isConnected, setIsConnected] = useState(false);
+    const [, setIsConnected] = useState(false);
     const wsRef = useRef<WebSocket | null>(null);
 
     // WebSocket connection management
@@ -24,7 +24,7 @@ export default function LiveData() {
         if (!token) return;
 
         const protocol = typeof window !== "undefined" && window.location.protocol === "https:" ? "wss" : "ws";
-        const host = process.env.NEXT_PUBLIC_API_HOST ?? "localhost:8080";
+        const host = process.env.NEXT_PUBLIC_API_HOST ?? "sigmoidal-backend.onrender.com";
         const ws = new WebSocket(`${protocol}://${host}/ws/getlivedata?token=${encodeURIComponent(token)}`);
         wsRef.current = ws;
 

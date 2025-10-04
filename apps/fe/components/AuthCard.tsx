@@ -27,23 +27,23 @@ export default function AuthCard({ mode }: AuthCardProps) {
   
       if (isSignup) {
         try {
-          await axios.post("http://0.0.0.0:8080/api/v1/users/createUser", { email, password, username });
+          await axios.post("https://sigmoidal-backend.onrender.com/api/v1/users/createUser", { email, password, username });
           toast.success("Account created successfully");
           router.push("/signin");
-        } catch (error: any) {
-          const message = error?.response?.data?.detail || error?.message || "Error creating account";
+        } catch (error: unknown) {
+          const message = (error as any)?.response?.data?.detail || (error as any)?.message || "Error creating account";
           toast.error(message);
           return;
         }
       } else {
         try {
-          const response = await axios.post("http://0.0.0.0:8080/api/v1/users/login", { email, password });
+          const response = await axios.post("https://sigmoidal-backend.onrender.com/api/v1/users/login", { email, password });
           const { token } = response.data;
           toast.success("Logged in successfully");
           localStorage.setItem("token", token);
           router.push("/dashboard");
-        } catch (error: any) {
-          const message = error?.response?.data?.detail || error?.message || "Error logging in";
+        } catch (error: unknown) {
+          const message = (error as any)?.response?.data?.detail || (error as any)?.message || "Error logging in";
           toast.error(message);
           return;
         }
