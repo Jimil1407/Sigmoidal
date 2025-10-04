@@ -49,7 +49,13 @@ app.include_router(users_router)
 async def startup_event():
     logger.info("Starting up Trading Dashboard API...")
     try:
-        # Test database connection if needed
+        # Check if database URL is configured
+        import os
+        database_url = os.getenv("DIRECT_URL")
+        if not database_url:
+            logger.warning("No database URL configured - running in read-only mode")
+        else:
+            logger.info("Database URL configured")
         logger.info("API startup completed successfully")
     except Exception as e:
         logger.error(f"Startup error: {e}")

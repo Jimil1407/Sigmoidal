@@ -22,6 +22,10 @@ COPY prisma ./prisma
 # Generate Prisma client
 RUN prisma generate
 
+# Make setup script executable
+COPY setup_db.py /app/setup_db.py
+RUN chmod +x /app/setup_db.py
+
 EXPOSE 8080
 
 # Simple command to start the app
