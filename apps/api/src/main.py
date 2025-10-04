@@ -26,19 +26,11 @@ app = FastAPI(title="Trading Dashboard API", version="1.0.0")
 import uvicorn
 from uvicorn.config import Config
 
-# CORS configuration
+# CORS configuration - Temporary permissive setup for deployment
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:3001", 
-        "https://sigmoidal-fe.vercel.app",
-        "https://sigmoidal-fe-git-main-jimil1407s-projects.vercel.app",
-        "https://sigmoidal-fe-git-dev-jimil1407s-projects.vercel.app",
-        "https://*.vercel.app",  # Allow all Vercel preview deployments
-        "https://*.onrender.com"  # Allow all Render deployments
-    ],
-    allow_credentials=True,
+    allow_origins=["*"],  # Allow all origins temporarily
+    allow_credentials=False,  # Set to False when using wildcard origins
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
@@ -55,6 +47,16 @@ app.include_router(users_router)
 
 @app.on_event("startup")
 async def startup_event():
-    pass
+    logger.info("Starting up Trading Dashboard API...")
+    try:
+        # Test database connection if needed
+        logger.info("API startup completed successfully")
+    except Exception as e:
+        logger.error(f"Startup error: {e}")
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    logger.error(f"Global exception: {exc}")
+    return {"error": "Internal server error", "detail": str(exc)}
 
 register_websocket(app)
