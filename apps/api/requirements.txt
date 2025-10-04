@@ -20,3 +20,4 @@ tensorflow==2.17.0
 prisma==0.15.0
 twscrape==0.17.0
 psycopg[binary]==3.2.3
+ta==0.10.2
