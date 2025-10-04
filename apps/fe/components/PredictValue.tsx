@@ -26,12 +26,12 @@ export default function PredictValue() {
     
     try {
       const response = await axios.get(
-        `http://localhost:8080/api/v1/predictions/predict/${symbol}`
+        `https://sigmoidal-backend.onrender.com/api/v1/predictions/predict/${symbol}`
       );
       setPrediction(response.data.prediction);
       setStatus("Prediction completed successfully");
       toast.success("Prediction completed successfully");
-    } catch (error) {
+    } catch {
       setPrediction("Error fetching prediction");
       setStatus("Error occurred during prediction");
       toast.error("Error fetching prediction");
@@ -51,7 +51,7 @@ export default function PredictValue() {
     
     try {
       await axios.get(
-        `http://localhost:8080/api/v1/predictions/train/${symbol}`,
+        `https://sigmoidal-backend.onrender.com/api/v1/predictions/train/${symbol}`,
         { timeout: 300000 } // 5 minutes timeout for training
       );
       setStatus("Model trained successfully");

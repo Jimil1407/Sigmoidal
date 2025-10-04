@@ -71,13 +71,13 @@ export default function MarketCard({ symbol, onRemove, data, isRealTime = false 
             {/* High/Low */}
             <div className="grid grid-cols-2 gap-3">
                 <div className="bg-white/5 rounded-lg p-3">
-                    <div className="text-xs text-white/60 mb-1">Today's High</div>
+                    <div className="text-xs text-white/60 mb-1">Today&apos;s High</div>
                     <div className="text-sm font-semibold text-green-400">
                         ${data?.high?.toFixed(2) || "—"}
                     </div>
                 </div>
                 <div className="bg-white/5 rounded-lg p-3">
-                    <div className="text-xs text-white/60 mb-1">Today's Low</div>
+                    <div className="text-xs text-white/60 mb-1">Today&apos;s Low</div>
                     <div className="text-sm font-semibold text-red-400">
                         ${data?.low?.toFixed(2) || "—"}
                     </div>

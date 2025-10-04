@@ -8,7 +8,7 @@ type PlaceTradeProps = {
 };
 
 export default function PlaceTrade({ onPlaced }: PlaceTradeProps) {
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "https://sigmoidal-backend.onrender.com";
     const handleSubmitTrade = async (e: React.FormEvent) => {
     try {
     e.preventDefault();

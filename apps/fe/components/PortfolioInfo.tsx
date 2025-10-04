@@ -37,14 +37,14 @@ export default function PortfolioInfo({ exposeRefresh }: PortfolioInfoProps) {
         const token = typeof window !== "undefined" ? window.localStorage.getItem("token") : null;
         if (!token) return;
         const authHeader = { Authorization: token } as const;
-        const response = await axios.get(`http://localhost:8080/api/v1/portfolio/myportfolio`, { headers: authHeader });
+        const response = await axios.get(`https://sigmoidal-backend.onrender.com/api/v1/portfolio/myportfolio`, { headers: authHeader });
         setPortfolio(response.data as Portfolio);
         
-        const positionsResponse = await axios.get(`http://localhost:8080/api/v1/portfolio/myportfolio/positions`, { headers: authHeader });
+        const positionsResponse = await axios.get(`https://sigmoidal-backend.onrender.com/api/v1/portfolio/myportfolio/positions`, { headers: authHeader });
         setPositions(positionsResponse.data as Position[]);
 
     
-        const tradesResponse = await axios.get(`http://localhost:8080/api/v1/portfolio/myportfolio/trades`, { headers: authHeader });
+        const tradesResponse = await axios.get(`https://sigmoidal-backend.onrender.com/api/v1/portfolio/myportfolio/trades`, { headers: authHeader });
         setTrades(tradesResponse.data as Trade[]);
         
     };
