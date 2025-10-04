@@ -29,9 +29,17 @@ from uvicorn.config import Config
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Next.js dev server
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3001", 
+        "https://sigmoidal-fe.vercel.app",
+        "https://sigmoidal-fe-git-main-jimil1407s-projects.vercel.app",
+        "https://sigmoidal-fe-git-dev-jimil1407s-projects.vercel.app",
+        "https://*.vercel.app",  # Allow all Vercel preview deployments
+        "https://*.onrender.com"  # Allow all Render deployments
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
