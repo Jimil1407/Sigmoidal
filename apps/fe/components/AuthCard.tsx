@@ -31,7 +31,8 @@ export default function AuthCard({ mode }: AuthCardProps) {
           toast.success("Account created successfully");
           router.push("/signin");
         } catch (error: unknown) {
-          const message = (error as any)?.response?.data?.detail || (error as any)?.message || "Error creating account";
+          const axiosError = error as { response?: { data?: { detail?: string } }; message?: string };
+          const message = axiosError?.response?.data?.detail || axiosError?.message || "Error creating account";
           toast.error(message);
           return;
         }
@@ -43,7 +44,8 @@ export default function AuthCard({ mode }: AuthCardProps) {
           localStorage.setItem("token", token);
           router.push("/dashboard");
         } catch (error: unknown) {
-          const message = (error as any)?.response?.data?.detail || (error as any)?.message || "Error logging in";
+          const axiosError = error as { response?: { data?: { detail?: string } }; message?: string };
+          const message = axiosError?.response?.data?.detail || axiosError?.message || "Error logging in";
           toast.error(message);
           return;
         }
