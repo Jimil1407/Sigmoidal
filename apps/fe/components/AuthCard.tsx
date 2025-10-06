@@ -24,7 +24,7 @@ export default function AuthCard({ mode }: AuthCardProps) {
     setIsSubmitting(true);
     try {
       await new Promise((r) => setTimeout(r, 800));
-  
+  //TODO: Add backend validation
       if (isSignup) {
         try {
           await axios.post("https://sigmoidal-backend.onrender.com/api/v1/users/createUser", { email, password, username });
